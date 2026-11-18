@@ -1,4 +1,10 @@
-// J.A.R.V.I.S. Agent-Trained Core, Custom Memory & Live Tool Routing
+
+// ============================================================
+// J.A.R.V.I.S. — AGENT-TRAINED CORE
+// Custom Memory + AI Integration + Live Tool Routing
+// ============================================================
+
+// 1. DOM ELEMENTS
 const terminalLog = document.getElementById('terminal-log');
 const cmdForm = document.getElementById('cmd-form');
 const cmdInput = document.getElementById('cmd-input');
@@ -9,318 +15,571 @@ const coreState = document.getElementById('core-state');
 const ttsToggle = document.getElementById('tts-toggle');
 const aiModeBadge = document.getElementById('ai-mode-badge');
 
-// 1. Pre-trained Agentic Training & Evaluation Knowledge Base (From User's Corpora)
+// ============================================================
+// 2. AGENTIC DATASETS
+// ============================================================
+
 const AGENTIC_DATASETS = [
     {
         name: "arcee-ai/agent-data",
         type: "Training Corpus",
         url: "https://huggingface.co/datasets/arcee-ai/agent-data",
-        summary: "Function-calling and multi-turn agent conversations packaged as a supervised fine-tuning mixture for tool selection and dialogue planning."
+        summary: "Function-calling and multi-turn agent conversations for tool selection and dialogue planning."
     },
     {
         name: "ToolBench (ToolLLaMA)",
         type: "Training Corpus",
         url: "https://huggingface.co/datasets/tuandunghcmut/toolbench-v1",
-        summary: "Large-scale supervised fine-tuning corpus for general real-world API and tool use, serving as the foundation for ToolLLM and ToolLLaMA."
+        summary: "A supervised tool-use corpus for general API and tool interaction."
     },
     {
         name: "ToolAlpaca",
         type: "Training Corpus",
         url: "https://github.com/tangqiaoyu/ToolAlpaca",
-        summary: "Synthetic tool-use instances spanning 400+ tools with companion evaluation sets for generalized tool invocation."
+        summary: "Synthetic tool-use examples spanning hundreds of tools."
     },
     {
         name: "API-Bank",
         type: "Training Corpus",
         url: "https://arxiv.org/abs/2304.08244",
-        summary: "Tool-use dialogues paired with a runnable tool ecosystem designed for multi-step planning and verifiable API execution."
+        summary: "Tool-use dialogues paired with a runnable API ecosystem."
     },
     {
         name: "WebShop",
         type: "Training Environment",
         url: "https://github.com/princeton-nlp/WebShop",
-        summary: "Simulated e-commerce environment grounded in real product data that tests multi-step search, attribute matching, and decision-making."
+        summary: "An environment for evaluating multi-step shopping and decision-making."
     },
     {
         name: "webshop_expert_trajectories",
         type: "Training Corpus",
         url: "https://huggingface.co/datasets/lclan/webshop_expert_trajectories",
-        summary: "Expert agent rollouts containing both successes and failures for behavior cloning and error-recovery tuning."
+        summary: "Expert agent trajectories for behavior learning and evaluation."
     },
     {
         name: "ALFRED",
         type: "Embodied Corpus",
         url: "https://github.com/askforalfred/alfred",
-        summary: "Embodied household robotics dataset mapping natural language instructions and egocentric vision to long-horizon action sequences."
+        summary: "An embodied AI dataset for natural-language household tasks."
     },
     {
         name: "WebArena",
         type: "Evaluation Benchmark",
         url: "https://webarena.dev/",
-        summary: "Execution-validated web-task benchmark running on self-hosted realistic websites for reproducible agent regression testing."
+        summary: "A benchmark for evaluating realistic multi-step web tasks."
     },
     {
         name: "WebChoreArena",
         type: "Evaluation Benchmark",
         url: "https://github.com/WebChoreArena/WebChoreArena",
-        summary: "Benchmark of 532 tedious, multi-step web chore tasks designed to stress-test long-horizon workflow endurance."
+        summary: "A benchmark for long-horizon web workflow tasks."
     },
     {
         name: "MiniWoB++",
         type: "Evaluation Benchmark",
         url: "https://github.com/Farama-Foundation/miniwob-plusplus",
-        summary: "Suite of 100+ synthetic web environments with a unified API for evaluating low-level UI and DOM action policies."
+        summary: "Synthetic web environments for evaluating UI interaction."
     },
     {
         name: "GAIA",
         type: "Evaluation Benchmark",
         url: "https://huggingface.co/datasets/gaia-benchmark/GAIA",
-        summary: "General AI Assistants benchmark featuring tiered real-world questions requiring multi-step web browsing, reasoning, and tool synthesis."
+        summary: "A benchmark for general AI assistants and multi-step reasoning."
     },
     {
         name: "AgentBench",
         type: "Evaluation Benchmark",
         url: "https://github.com/THUDM/AgentBench",
-        summary: "Multi-dimensional benchmark across eight distinct environments—including OS and databases—scoring LLM-as-agent decision making."
+        summary: "A benchmark for evaluating AI agents across different environments."
     },
     {
         name: "SWE-bench",
         type: "Evaluation Benchmark",
         url: "https://github.com/SWE-bench/SWE-bench",
-        summary: "Software engineering benchmark evaluating autonomous coding agents on real GitHub issues scored by Dockerized unit tests."
+        summary: "A benchmark for software engineering agents."
     },
     {
         name: "OmniACT",
         type: "Evaluation Benchmark",
         url: "https://huggingface.co/datasets/Writer/omniact",
-        summary: "Multimodal desktop and web computer-use benchmark mapping screen states and instructions into executable GUI scripts."
+        summary: "A benchmark for desktop and web computer-use tasks."
     },
     {
         name: "BFCL (Berkeley Function Calling Leaderboard)",
         type: "Evaluation Benchmark",
         url: "https://huggingface.co/datasets/gorilla-llm/Berkeley-Function-Calling-Leaderboard",
-        summary: "Executable function-calling evaluation benchmark using prompts and tool schemas to measure strict tool-routing and parameter accuracy."
+        summary: "A benchmark for evaluating function-calling accuracy."
     }
 ];
 
-// 2. Persistent Custom Trained Memory (LocalStorage)
-let customMemory = JSON.parse(localStorage.getItem('jarvis_trained_memory') || '[]');
+// ============================================================
+// 3. CUSTOM TRAINED MEMORY
+// ============================================================
+
+let customMemory = [];
+
+try {
+    customMemory = JSON.parse(
+        localStorage.getItem('jarvis_trained_memory') || '[]'
+    );
+
+    if (!Array.isArray(customMemory)) {
+        customMemory = [];
+    }
+} catch (error) {
+    customMemory = [];
+}
 
 function saveMemory() {
-    localStorage.setItem('jarvis_trained_memory', JSON.stringify(customMemory));
+    localStorage.setItem(
+        'jarvis_trained_memory',
+        JSON.stringify(customMemory)
+    );
+
     renderTrainedMemory();
     updateWeightsIndicator();
 }
 
 function updateWeightsIndicator() {
-    const total = AGENTIC_DATASETS.length + customMemory.length;
-    document.getElementById('weights-val').textContent = `${total} NODES`;
-    document.getElementById('mem-count').textContent = customMemory.length;
+    const weightsVal = document.getElementById('weights-val');
+    const memCount = document.getElementById('mem-count');
+
+    if (weightsVal) {
+        weightsVal.textContent =
+            `${AGENTIC_DATASETS.length + customMemory.length} NODES`;
+    }
+
+    if (memCount) {
+        memCount.textContent = customMemory.length;
+    }
 }
+
 updateWeightsIndicator();
 
-// Similarity Matching for Custom Trained Q&A
+// ============================================================
+// 4. TRAINED MEMORY MATCHING
+// ============================================================
+
 function findTrainedMatch(query) {
-    const cleanQ = query.toLowerCase().replace(/[?.,!]/g, '').trim();
+    const cleanQ = query
+        .toLowerCase()
+        .replace(/[?.,!]/g, '')
+        .trim();
+
     if (!cleanQ) return null;
 
-    // 1. Exact or substring match in custom user-trained memory
     for (const item of customMemory) {
-        const trainedQ = item.q.toLowerCase().replace(/[?.,!]/g, '').trim();
-        if (cleanQ === trainedQ || cleanQ.includes(trainedQ) || trainedQ.includes(cleanQ)) {
-            return `${item.a} <span style="color:var(--amber);font-size:0.75rem;">[Trained Memory]</span>`;
+        if (!item.q || !item.a) continue;
+
+        const trainedQ = item.q
+            .toLowerCase()
+            .replace(/[?.,!]/g, '')
+            .trim();
+
+        if (
+            cleanQ === trainedQ ||
+            cleanQ.includes(trainedQ) ||
+            trainedQ.includes(cleanQ)
+        ) {
+            return `${escapeHTML(item.a)}
+                <span style="color:var(--amber);font-size:0.75rem;">
+                [Trained Memory]</span>`;
         }
     }
 
-    // 2. Token overlap match (>= 65% keyword overlap)
     const qTokens = cleanQ.split(/\s+/).filter(w => w.length > 2);
+
     if (qTokens.length > 0) {
         let bestScore = 0;
         let bestItem = null;
+
         for (const item of customMemory) {
-            const tTokens = item.q.toLowerCase().replace(/[?.,!]/g, '').split(/\s+/).filter(w => w.length > 2);
-            const overlap = qTokens.filter(t => tTokens.includes(t)).length;
-            const score = overlap / Math.max(qTokens.length, tTokens.length);
+            if (!item.q || !item.a) continue;
+
+            const tTokens = item.q
+                .toLowerCase()
+                .replace(/[?.,!]/g, '')
+                .split(/\s+/)
+                .filter(w => w.length > 2);
+
+            const overlap = qTokens.filter(
+                token => tTokens.includes(token)
+            ).length;
+
+            const score = overlap /
+                Math.max(qTokens.length, tTokens.length);
+
             if (score > bestScore && score >= 0.65) {
                 bestScore = score;
                 bestItem = item;
             }
         }
+
         if (bestItem) {
-            return `${bestItem.a} <span style="color:var(--amber);font-size:0.75rem;">[Trained Memory]</span>`;
+            return `${escapeHTML(bestItem.a)}
+                <span style="color:var(--amber);font-size:0.75rem;">
+                [Trained Memory]</span>`;
         }
     }
 
-    // 3. Match against pre-trained Agentic Datasets
-    if (cleanQ.includes('what datasets are you trained on') || cleanQ.includes('list datasets') || cleanQ.includes('training data')) {
-        const names = AGENTIC_DATASETS.map(d => `<strong>${d.name}</strong>`).join(', ');
-        return `My neural architecture is trained and benchmarked on 15 agentic corpora: ${names}. Ask me about any specific dataset (e.g., <em>"Explain SWE-bench"</em>) for full telemetry.`;
+    if (
+        cleanQ.includes('what datasets are you trained on') ||
+        cleanQ.includes('list datasets') ||
+        cleanQ.includes('training data')
+    ) {
+        const names = AGENTIC_DATASETS
+            .map(d => `<strong>${escapeHTML(d.name)}</strong>`)
+            .join(', ');
+
+        return `My indexed agentic dataset catalogue contains:
+            ${names}. Ask me about a specific dataset for more information.`;
     }
 
     for (const ds of AGENTIC_DATASETS) {
         const shortKey = ds.name.split(' ')[0].toLowerCase();
+
         if (cleanQ.includes(shortKey)) {
-            return `<strong>${ds.name}</strong> [<em>${ds.type}</em>]: ${ds.summary} <br><a href="${ds.url}" target="_blank">[Inspect Corpus Source]</a>`;
+            return `<strong>${escapeHTML(ds.name)}</strong>
+                [<em>${escapeHTML(ds.type)}</em>]:
+                ${escapeHTML(ds.summary)}
+                <br><a href="${ds.url}" target="_blank"
+                rel="noopener noreferrer">[Inspect Corpus Source]</a>`;
         }
     }
 
     return null;
 }
 
-// 3. Training Modal UI Logic
+// ============================================================
+// 5. HTML ESCAPING
+// ============================================================
+
+function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    })[char]);
+}
+
+// ============================================================
+// 6. TRAINING MODAL
+// ============================================================
+
 const trainModal = document.getElementById('train-modal');
-document.getElementById('train-modal-btn').addEventListener('click', () => {
-    renderDatasetsTab();
-    renderTrainedMemory();
-    trainModal.classList.remove('hidden');
-});
-document.getElementById('close-train-modal').addEventListener('click', () => trainModal.classList.add('hidden'));
+
+document.getElementById('train-modal-btn')
+    .addEventListener('click', () => {
+        renderDatasetsTab();
+        renderTrainedMemory();
+        trainModal.classList.remove('hidden');
+    });
+
+document.getElementById('close-train-modal')
+    .addEventListener('click', () => {
+        trainModal.classList.add('hidden');
+    });
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn')
+            .forEach(b => b.classList.remove('active'));
+
+        document.querySelectorAll('.tab-content')
+            .forEach(c => c.classList.add('hidden'));
+
         btn.classList.add('active');
-        document.getElementById(btn.getAttribute('data-tab')).classList.remove('hidden');
+
+        const target = document.getElementById(
+            btn.getAttribute('data-tab')
+        );
+
+        if (target) target.classList.remove('hidden');
     });
 });
 
-document.getElementById('save-train-btn').addEventListener('click', () => {
-    const q = document.getElementById('train-q').value.trim();
-    const a = document.getElementById('train-a').value.trim();
-    if (!q || !a) return;
-    customMemory.unshift({ q, a, timestamp: new Date().toISOString() });
-    saveMemory();
-    document.getElementById('train-q').value = '';
-    document.getElementById('train-a').value = '';
-    trainModal.classList.add('hidden');
-    appendMessage('jarvis', `Training complete, Sir. New neural pathway committed:<br><strong>Q:</strong> ${q}<br><strong>A:</strong> ${a}`);
-    speak('Training complete, Sir. New knowledge committed to my neural matrix.');
-});
+document.getElementById('save-train-btn')
+    .addEventListener('click', () => {
+        const q = document.getElementById('train-q').value.trim();
+        const a = document.getElementById('train-a').value.trim();
+
+        if (!q || !a) return;
+
+        customMemory.unshift({
+            q,
+            a,
+            timestamp: new Date().toISOString()
+        });
+
+        saveMemory();
+
+        document.getElementById('train-q').value = '';
+        document.getElementById('train-a').value = '';
+
+        trainModal.classList.add('hidden');
+
+        appendMessage(
+            'jarvis',
+            `Training complete. New knowledge saved:
+            <br><strong>Q:</strong> ${escapeHTML(q)}
+            <br><strong>A:</strong> ${escapeHTML(a)}`
+        );
+
+        speak('Training complete. New knowledge saved.');
+    });
 
 function renderDatasetsTab() {
     const container = document.getElementById('dataset-list');
+
     container.innerHTML = AGENTIC_DATASETS.map(ds => `
         <div class="ds-card">
-            <strong>${ds.name}</strong>
-            <span>${ds.type} // INDEXED</span>
-            <p style="margin-top:4px;color:#bfefff;">${ds.summary.slice(0, 88)}...</p>
+            <strong>${escapeHTML(ds.name)}</strong>
+            <span>${escapeHTML(ds.type)} // INDEXED</span>
+            <p style="margin-top:4px;color:#bfefff;">
+                ${escapeHTML(ds.summary.slice(0, 88))}...
+            </p>
         </div>
     `).join('');
 }
 
 function renderTrainedMemory() {
     const list = document.getElementById('trained-list');
+
+    if (!list) return;
+
     if (customMemory.length === 0) {
-        list.innerHTML = '<p class="modal-desc">No custom Q&amp;A weights trained yet. Add one in Tab 1 or type <code>Train: question =&gt; answer</code> in chat.</p>';
+        list.innerHTML = `
+            <p class="modal-desc">
+                No custom Q&A knowledge saved yet.
+                Add one in the training tab or type:
+                <code>Train: question => answer</code>
+            </p>
+        `;
         return;
     }
+
     list.innerHTML = customMemory.map((item, idx) => `
         <div class="trained-item">
             <div>
-                <strong style="color:var(--cyan);">Q: ${item.q}</strong><br>
-                <span>A: ${item.a}</span>
+                <strong style="color:var(--cyan);">
+                    Q: ${escapeHTML(item.q)}
+                </strong>
+                <br>
+                <span>A: ${escapeHTML(item.a)}</span>
             </div>
-            <button class="del-item-btn" onclick="deleteTrainedItem(${idx})">DEL</button>
+            <button class="del-item-btn"
+                onclick="deleteTrainedItem(${idx})">
+                DEL
+            </button>
         </div>
     `).join('');
 }
 
 window.deleteTrainedItem = function(idx) {
+    if (idx < 0 || idx >= customMemory.length) return;
+
     customMemory.splice(idx, 1);
     saveMemory();
 };
 
-document.getElementById('export-memory-btn').addEventListener('click', () => {
-    const payload = {
-        model: "JARVIS-Custom-Weights-v1",
-        builtin_datasets: AGENTIC_DATASETS.map(d => d.name),
-        custom_trained_pairs: customMemory
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'jarvis-trained-weights.json';
-    a.click();
-});
+// Export memory
+document.getElementById('export-memory-btn')
+    .addEventListener('click', () => {
+        const payload = {
+            model: 'JARVIS-Custom-Memory-v1',
+            builtin_datasets: AGENTIC_DATASETS.map(d => d.name),
+            custom_trained_pairs: customMemory
+        };
 
-document.getElementById('wipe-memory-btn').addEventListener('click', () => {
-    customMemory = [];
-    saveMemory();
-});
+        const blob = new Blob(
+            [JSON.stringify(payload, null, 2)],
+            { type: 'application/json' }
+        );
 
-// 4. Optional External LLM Configuration
-let savedProvider = localStorage.getItem('jarvis_provider') || 'groq';
-let savedApiKey = localStorage.getItem('jarvis_api_key') || '';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        a.href = url;
+        a.download = 'jarvis-trained-memory.json';
+        a.click();
+
+        URL.revokeObjectURL(url);
+    });
+
+// Clear memory
+document.getElementById('wipe-memory-btn')
+    .addEventListener('click', () => {
+        customMemory = [];
+        saveMemory();
+    });
+
+// ============================================================
+// 7. AI PROVIDER SETTINGS
+// ============================================================
+
+let savedProvider =
+    localStorage.getItem('jarvis_provider') || 'groq';
+
+let savedApiKey =
+    localStorage.getItem('jarvis_api_key') || '';
 
 function updateModeBadge() {
+    if (!aiModeBadge) return;
+
     aiModeBadge.textContent = savedApiKey
         ? `SYS.ONLINE // ${savedProvider.toUpperCase()} + TRAINED CORE`
         : 'SYS.ONLINE // AGENT-TRAINED CORE';
 }
+
 updateModeBadge();
 
 const apiModal = document.getElementById('api-modal');
-document.getElementById('settings-btn').addEventListener('click', () => {
-    document.getElementById('api-provider').value = savedProvider;
-    document.getElementById('api-key-input').value = savedApiKey;
-    apiModal.classList.remove('hidden');
-});
-document.getElementById('close-modal').addEventListener('click', () => apiModal.classList.add('hidden'));
-document.getElementById('save-api-btn').addEventListener('click', () => {
-    savedProvider = document.getElementById('api-provider').value;
-    savedApiKey = document.getElementById('api-key-input').value.trim();
-    localStorage.setItem('jarvis_provider', savedProvider);
-    localStorage.setItem('jarvis_api_key', savedApiKey);
-    updateModeBadge();
-    apiModal.classList.add('hidden');
-    appendMessage('jarvis', 'External neural link activated. Your custom trained facts will also be injected into every LLM prompt.');
-});
-document.getElementById('clear-api-btn').addEventListener('click', () => {
-    savedApiKey = '';
-    localStorage.removeItem('jarvis_api_key');
-    updateModeBadge();
-    apiModal.classList.add('hidden');
-    appendMessage('jarvis', 'Switched to built-in zero-key Trained Knowledge Core.');
-});
 
-// Live Clock & Battery
+document.getElementById('settings-btn')
+    .addEventListener('click', () => {
+        document.getElementById('api-provider').value = savedProvider;
+        document.getElementById('api-key-input').value = savedApiKey;
+
+        apiModal.classList.remove('hidden');
+    });
+
+document.getElementById('close-modal')
+    .addEventListener('click', () => {
+        apiModal.classList.add('hidden');
+    });
+
+document.getElementById('save-api-btn')
+    .addEventListener('click', () => {
+        savedProvider =
+            document.getElementById('api-provider').value;
+
+        savedApiKey =
+            document.getElementById('api-key-input').value.trim();
+
+        localStorage.setItem('jarvis_provider', savedProvider);
+        localStorage.setItem('jarvis_api_key', savedApiKey);
+
+        updateModeBadge();
+
+        apiModal.classList.add('hidden');
+
+        appendMessage(
+            'jarvis',
+            'External AI provider configured in this browser. Test the connection with a message.'
+        );
+    });
+
+document.getElementById('clear-api-btn')
+    .addEventListener('click', () => {
+        savedApiKey = '';
+
+        localStorage.removeItem('jarvis_api_key');
+
+        updateModeBadge();
+
+        apiModal.classList.add('hidden');
+
+        appendMessage(
+            'jarvis',
+            'External AI connection disabled. Built-in tools remain available.'
+        );
+    });
+
+// ============================================================
+// 8. CLOCK AND BATTERY
+// ============================================================
+
 function updateClock() {
-    document.getElementById('clock').textContent = new Date().toTimeString().split(' ')[0];
+    const clock = document.getElementById('clock');
+
+    if (clock) {
+        clock.textContent =
+            new Date().toTimeString().split(' ')[0];
+    }
 }
+
 setInterval(updateClock, 1000);
 updateClock();
 
 if ('getBattery' in navigator) {
-    navigator.getBattery().then(battery => {
-        const updateBat = () => {
-            document.getElementById('battery-status').textContent = `PWR: ${Math.round(battery.level * 100)}%`;
-        };
-        updateBat();
-        battery.addEventListener('levelchange', updateBat);
-    });
+    navigator.getBattery()
+        .then(battery => {
+            const updateBat = () => {
+                const status =
+                    document.getElementById('battery-status');
+
+                if (status) {
+                    status.textContent =
+                        `PWR: ${Math.round(battery.level * 100)}%`;
+                }
+            };
+
+            updateBat();
+            battery.addEventListener('levelchange', updateBat);
+        })
+        .catch(() => {});
 }
 
-// Terminal & Speech Helpers
+// ============================================================
+// 9. CHAT DISPLAY
+// ============================================================
+
 function appendMessage(sender, htmlText) {
     const div = document.createElement('div');
+
     div.className = `msg ${sender}`;
-    const tag = sender === 'user' ? '[USER]' : '[J.A.R.V.I.S.]';
-    div.innerHTML = `<span class="tag">${tag}</span> ${htmlText}`;
+
+    const tag = sender === 'user'
+        ? '[USER]'
+        : '[J.A.R.V.I.S.]';
+
+    const tagElement = document.createElement('span');
+    tagElement.className = 'tag';
+    tagElement.textContent = tag;
+
+    div.appendChild(tagElement);
+
+    const content = document.createElement('span');
+    content.innerHTML = htmlText;
+
+    div.appendChild(content);
+
     terminalLog.appendChild(div);
     terminalLog.scrollTop = terminalLog.scrollHeight;
 }
 
+// ============================================================
+// 10. TEXT-TO-SPEECH
+// ============================================================
+
 function speak(plainText) {
-    if (!ttsToggle.checked || !('speechSynthesis' in window)) return;
+    if (
+        !ttsToggle ||
+        !ttsToggle.checked ||
+        !('speechSynthesis' in window)
+    ) {
+        return;
+    }
+
     window.speechSynthesis.cancel();
-    const cleanText = plainText.replace(/<[^>]*>/g, '').slice(0, 420);
+
+    const cleanText = plainText
+        .replace(/<[^>]*>/g, '')
+        .slice(0, 420);
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
+
     const voices = window.speechSynthesis.getVoices();
-    const britishVoice = voices.find(v => v.lang.includes('en-GB') && v.name.includes('Male'))
-                      || voices.find(v => v.lang.includes('en-GB'))
-                      || voices.find(v => v.lang.includes('en'));
+
+    const britishVoice =
+        voices.find(v => v.lang.includes('en-GB') && v.name.includes('Male')) ||
+        voices.find(v => v.lang.includes('en-GB')) ||
+        voices.find(v => v.lang.includes('en'));
+
     if (britishVoice) utterance.voice = britishVoice;
+
     utterance.pitch = 0.95;
     utterance.rate = 1.03;
 
@@ -328,79 +587,207 @@ function speak(plainText) {
         reactorCore.classList.add('speaking');
         coreState.textContent = 'SPEAKING';
     };
+
     utterance.onend = () => {
         reactorCore.classList.remove('speaking');
         coreState.textContent = 'STANDBY';
     };
+
     window.speechSynthesis.speak(utterance);
 }
 
-// 5. BFCL-Style Tool Functions (Math, Weather, Dictionary, Wikipedia)
+// ============================================================
+// 11. MATH TOOL
+// ============================================================
+
 function tryMathTool(query) {
     const cleaned = query
         .replace(/^(what is|whats|what's|calculate|solve|compute|math)\s+/i, '')
-        .replace(/×/g, '*').replace(/÷/g, '/').replace(/\^/g, '**').replace(/\?/g, '').trim();
-    if (/^[0-9+\-*/().\s*]+$/.test(cleaned) && /[0-9]/.test(cleaned) && /[+\-*/]/.test(cleaned)) {
+        .replace(/×/g, '*')
+        .replace(/÷/g, '/')
+        .replace(/\^/g, '**')
+        .replace(/\?/g, '')
+        .trim();
+
+    if (
+        /^[0-9+\-*/().\s*]+$/.test(cleaned) &&
+        /[0-9]/.test(cleaned) &&
+        /[+\-*/]/.test(cleaned)
+    ) {
         try {
-            const result = Function(`"use strict"; return (${cleaned})`)();
-            if (typeof result === 'number' && !isNaN(result)) {
-                return `The calculated result is <strong>${Number(result.toFixed(6))}</strong>, Sir. <span style="color:var(--cyan);font-size:0.75rem;">[Tool: MathEngine]</span>`;
+            const result = Function(
+                `"use strict"; return (${cleaned})`
+            )();
+
+            if (typeof result === 'number' && Number.isFinite(result)) {
+                return `The calculated result is
+                    <strong>${Number(result.toFixed(6))}</strong>.
+                    <span style="color:var(--cyan);font-size:0.75rem;">
+                    [Tool: MathEngine]</span>`;
             }
-        } catch (e) {}
+        } catch (error) {
+            return null;
+        }
     }
+
     return null;
 }
 
+// ============================================================
+// 12. WEATHER TOOL
+// ============================================================
+
 async function fetchWeatherTool(city) {
-    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+    const geoRes = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
+    );
+
+    if (!geoRes.ok) throw new Error('Weather location lookup failed.');
+
     const geoData = await geoRes.json();
-    if (!geoData.results || geoData.results.length === 0) return null;
-    const { latitude, longitude, name, country } = geoData.results[0];
-    const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`);
+
+    if (!geoData.results || geoData.results.length === 0) {
+        return null;
+    }
+
+    const {
+        latitude,
+        longitude,
+        name,
+        country
+    } = geoData.results[0];
+
+    const wRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`
+    );
+
+    if (!wRes.ok) throw new Error('Weather service unavailable.');
+
     const wData = await wRes.json();
     const cur = wData.current;
-    const codes = { 0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast', 45: 'Fog', 61: 'Light rain', 63: 'Moderate rain', 65: 'Heavy rain', 95: 'Thunderstorm' };
-    return `Current telemetry for <strong>${name}, ${country}</strong>: ${codes[cur.weather_code] || 'Active conditions'}, <strong>${cur.temperature_2m}°C</strong>, humidity ${cur.relative_humidity_2m}%, wind ${cur.wind_speed_10m} km/h. <span style="color:var(--cyan);font-size:0.75rem;">[Tool: OpenMeteo]</span>`;
+
+    const codes = {
+        0: 'Clear sky',
+        1: 'Mainly clear',
+        2: 'Partly cloudy',
+        3: 'Overcast',
+        45: 'Fog',
+        48: 'Depositing rime fog',
+        51: 'Light drizzle',
+        53: 'Moderate drizzle',
+        55: 'Dense drizzle',
+        61: 'Light rain',
+        63: 'Moderate rain',
+        65: 'Heavy rain',
+        80: 'Rain showers',
+        81: 'Moderate rain showers',
+        82: 'Heavy rain showers',
+        95: 'Thunderstorm'
+    };
+
+    return `Current weather for
+        <strong>${escapeHTML(name)}, ${escapeHTML(country)}</strong>:
+        ${codes[cur.weather_code] || 'Active conditions'},
+        <strong>${cur.temperature_2m}°C</strong>,
+        humidity ${cur.relative_humidity_2m}%,
+        wind ${cur.wind_speed_10m} km/h.
+        <span style="color:var(--cyan);font-size:0.75rem;">
+        [Tool: OpenMeteo]</span>`;
 }
 
+// ============================================================
+// 13. DICTIONARY TOOL
+// ============================================================
+
 async function fetchDictionaryTool(word) {
-    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+    const res = await fetch(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`
+    );
+
     if (!res.ok) return null;
+
     const data = await res.json();
+
     const meaning = data[0]?.meanings?.[0];
     const def = meaning?.definitions?.[0]?.definition;
-    return def ? `<strong>${data[0].word}</strong> (<em>${meaning.partOfSpeech}</em>): ${def} <span style="color:var(--cyan);font-size:0.75rem;">[Tool: Lexicon]</span>` : null;
+
+    return def
+        ? `<strong>${escapeHTML(data[0].word)}</strong>
+            (<em>${escapeHTML(meaning.partOfSpeech)}</em>):
+            ${escapeHTML(def)}
+            <span style="color:var(--cyan);font-size:0.75rem;">
+            [Tool: Lexicon]</span>`
+        : null;
 }
+
+// ============================================================
+// 14. WIKIPEDIA TOOL
+// ============================================================
 
 async function fetchWikipediaTool(question) {
     const topic = question
-        .replace(/^(who is|who was|who are|what is|what are|what was|tell me about|explain|search for|search|define|where is|when was)\s+/i, '')
-        .replace(/\?+$/, '').trim();
+        .replace(
+            /^(who is|who was|who are|what is|what are|what was|tell me about|explain|search for|search|define|where is|when was)\s+/i,
+            ''
+        )
+        .replace(/\?+$/, '')
+        .trim();
+
     if (!topic) return null;
-    const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(topic)}&format=json&origin=*`);
+
+    const searchRes = await fetch(
+        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(topic)}&format=json&origin=*`
+    );
+
+    if (!searchRes.ok) return null;
+
     const searchData = await searchRes.json();
     const hits = searchData?.query?.search;
+
     if (!hits || hits.length === 0) return null;
-    const sumRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(hits[0].title)}`);
+
+    const sumRes = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(hits[0].title)}`
+    );
+
     if (!sumRes.ok) return null;
+
     const sumData = await sumRes.json();
+
     if (sumData.extract) {
-        const pageUrl = sumData.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${encodeURIComponent(hits[0].title)}`;
-        return `${sumData.extract} <br><a href="${pageUrl}" target="_blank">[Read Full Dossier]</a>`;
+        const pageUrl =
+            sumData.content_urls?.desktop?.page ||
+            `https://en.wikipedia.org/wiki/${encodeURIComponent(hits[0].title)}`;
+
+        return `${escapeHTML(sumData.extract)}
+            <br><a href="${pageUrl}" target="_blank"
+            rel="noopener noreferrer">[Read Full Dossier]</a>`;
     }
+
     return null;
 }
 
+// ============================================================
+// 15. GROQ / OPENAI AI CONNECTION
+// ============================================================
+
 async function fetchLLMWithTrainedContext(userQuestion) {
+
+    // FIXED: Correct newline handling in memory context.
     const memoryContext = customMemory.length > 0
-        ? "User-trained custom facts you MUST prioritize:
-" + customMemory.map(m => `- Q: ${m.q} -> A: ${m.a}`).join("
-")
-        : "";
+        ? "User-trained custom facts you MUST prioritize:\n" +
+          customMemory
+              .map(m => `- Q: ${m.q} -> A: ${m.a}`)
+              .join("\n")
+        : "No additional user-trained facts are currently available.";
+
     const endpoint = savedProvider === 'openai'
         ? 'https://api.openai.com/v1/chat/completions'
         : 'https://api.groq.com/openai/v1/chat/completions';
-    const model = savedProvider === 'openai' ? 'gpt-4o-mini' : 'llama-3.3-70b-versatile';
+
+    const model = savedProvider === 'openai'
+        ? 'gpt-4o-mini'
+        : 'llama-3.3-70b-versatile';
 
     const res = await fetch(endpoint, {
         method: 'POST',
@@ -411,131 +798,332 @@ async function fetchLLMWithTrainedContext(userQuestion) {
         body: JSON.stringify({
             model,
             messages: [
-                { role: 'system', content: `You are J.A.R.V.I.S., a sophisticated British AI assistant trained on agentic benchmarks (BFCL, ToolBench, GAIA, SWE-bench, WebArena, ALFRED). ${memoryContext}` },
-                { role: 'user', content: userQuestion }
+                {
+                    role: 'system',
+                    content: `You are J.A.R.V.I.S., a helpful, intelligent AI assistant.
+                    Communicate clearly and professionally.
+                    Use the user's trained facts when relevant.
+                    Do not claim to have performed actions you have not performed.
+
+                    USER-TRAINED MEMORY:
+                    ${memoryContext}`
+                },
+                {
+                    role: 'user',
+                    content: userQuestion
+                }
             ],
             temperature: 0.5
         })
     });
-    if (!res.ok) throw new Error(`API HTTP ${res.status}`);
+
     const data = await res.json();
-    return data.choices[0].message.content.replace(/\n/g, '<br>');
+
+    if (!res.ok) {
+        throw new Error(
+            data.error?.message || `AI API error: HTTP ${res.status}`
+        );
+    }
+
+    const answer = data.choices?.[0]?.message?.content;
+
+    if (!answer) {
+        throw new Error('The AI provider returned an empty response.');
+    }
+
+    // Escape model text before displaying it as HTML.
+    return escapeHTML(answer).replace(/\n/g, '<br>');
 }
 
-// 6. Master Command & Training Router
+// ============================================================
+// 16. MASTER COMMAND ROUTER
+// ============================================================
+
 async function processCommand(rawCmd) {
     const trimmed = rawCmd.trim();
+
     if (!trimmed) return;
+
     const cmd = trimmed.toLowerCase();
 
-    appendMessage('user', trimmed);
+    appendMessage('user', escapeHTML(trimmed));
+
     reactorCore.classList.add('thinking');
     coreState.textContent = 'ROUTING';
 
     let response = '';
 
     try {
-        // Inline Training Command: "Train: question => answer"
+
+        // INLINE TRAINING
         if (/^train:\s*.+\s*=>\s*.+$/i.test(trimmed)) {
-            const parts = trimmed.replace(/^train:\s*/i, '').split('=>');
+
+            const parts = trimmed
+                .replace(/^train:\s*/i, '')
+                .split('=>');
+
             const q = parts[0].trim();
             const a = parts.slice(1).join('=>').trim();
-            customMemory.unshift({ q, a, timestamp: new Date().toISOString() });
+
+            customMemory.unshift({
+                q,
+                a,
+                timestamp: new Date().toISOString()
+            });
+
             saveMemory();
-            response = `Neural weight updated, Sir. Whenever you ask <em>"${q}"</em>, I will respond: <strong>${a}</strong>`;
+
+            response = `Knowledge saved. When you ask
+                <em>"${escapeHTML(q)}"</em>,
+                I will use your trained answer:
+                <strong>${escapeHTML(a)}</strong>`;
         }
-        else if (cmd === 'clear' || cmd === 'clear terminal') {
+
+        // CLEAR TERMINAL
+        else if (
+            cmd === 'clear' ||
+            cmd === 'clear terminal'
+        ) {
             terminalLog.innerHTML = '';
-            response = 'Terminal logs purged, Sir.';
+            response = 'Terminal logs cleared.';
         }
-        else if (/^(what time|current time|time is it)/i.test(cmd)) {
-            response = `The current local time is <strong>${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>.`;
+
+        // TIME
+        else if (
+            /^(what time|current time|time is it)/i.test(cmd)
+        ) {
+            response = `The current local time is
+                <strong>${new Date().toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}</strong>.`;
         }
-        else if (/^(what is the date|today's date|what day is it)/i.test(cmd)) {
-            response = `Today is <strong>${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>.`;
+
+        // DATE
+        else if (
+            /^(what is the date|today's date|what day is it)/i.test(cmd)
+        ) {
+            response = `Today is
+                <strong>${new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })}</strong>.`;
         }
+
+        // OPEN WEBSITE
         else if (cmd.startsWith('open ')) {
+
             const site = cmd.replace('open ', '').trim();
-            const shortcuts = { github: 'https://github.com', youtube: 'https://www.youtube.com', google: 'https://www.google.com', huggingface: 'https://huggingface.co' };
-            const url = shortcuts[site] || (site.startsWith('http') ? site : `https://www.${site}.com`);
-            window.open(url, '_blank');
-            response = `Launching <strong>${site}</strong> in a new secure viewport.`;
+
+            const shortcuts = {
+                github: 'https://github.com',
+                youtube: 'https://www.youtube.com',
+                google: 'https://www.google.com',
+                huggingface: 'https://huggingface.co'
+            };
+
+            const url = shortcuts[site] ||
+                (site.startsWith('http')
+                    ? site
+                    : `https://www.${site}.com`);
+
+            window.open(url, '_blank', 'noopener');
+
+            response = `Opening <strong>${escapeHTML(site)}</strong>.`;
         }
+
         else {
-            // Step A: Always check Custom Trained Memory & Agentic Datasets first!
+
+            // A. CUSTOM TRAINED MEMORY
             const trainedReply = findTrainedMatch(trimmed);
+
             if (trainedReply) {
                 response = trainedReply;
             }
-            // Step B: If External LLM API Key is active, use LLM + Trained Context
+
+            // B. EXTERNAL AI PROVIDER
             else if (savedApiKey) {
                 response = await fetchLLMWithTrainedContext(trimmed);
             }
-            // Step C: Zero-Key Tool Routing (Math -> Weather -> Dictionary -> Wikipedia)
+
+            // C. BUILT-IN TOOLS
             else {
+
                 const mathAns = tryMathTool(trimmed);
+
                 if (mathAns) {
                     response = mathAns;
-                } else if (cmd.includes('weather in ') || cmd.startsWith('weather ')) {
-                    const city = trimmed.replace(/.*weather\s+(in\s+)?/i, '').replace(/\?+$/, '').trim();
-                    response = (await fetchWeatherTool(city)) || `No meteorological data found for "${city}".`;
-                } else if (cmd.startsWith('define ')) {
-                    const word = trimmed.replace(/^define\s+/i, '').replace(/\?+$/, '').trim();
-                    response = (await fetchDictionaryTool(word)) || (await fetchWikipediaTool(trimmed));
-                } else {
-                    const wikiAns = await fetchWikipediaTool(trimmed);
-                    response = wikiAns || `No direct match found. You can train me on this topic anytime by typing:<br><code>Train: ${trimmed} =&gt; [your answer]</code>`;
+                }
+
+                else if (
+                    cmd.includes('weather in ') ||
+                    cmd.startsWith('weather ')
+                ) {
+                    const city = trimmed
+                        .replace(/.*weather\s+(in\s+)?/i, '')
+                        .replace(/\?+$/, '')
+                        .trim();
+
+                    response = (await fetchWeatherTool(city)) ||
+                        `No weather information found for ${escapeHTML(city)}.`;
+                }
+
+                else if (cmd.startsWith('define ')) {
+
+                    const word = trimmed
+                        .replace(/^define\s+/i, '')
+                        .replace(/\?+$/, '')
+                        .trim();
+
+                    response =
+                        (await fetchDictionaryTool(word)) ||
+                        (await fetchWikipediaTool(trimmed)) ||
+                        'No definition found.';
+                }
+
+                else {
+
+                    const wikiAns =
+                        await fetchWikipediaTool(trimmed);
+
+                    response = wikiAns ||
+                        `I could not find a direct match.
+                        You can teach me using:
+                        <br><code>Train: ${escapeHTML(trimmed)}
+                        =&gt; [your answer]</code>`;
                 }
             }
         }
+
     } catch (err) {
-        response = `System exception (${err.message}). Verify network or API key configuration.`;
+
+        console.error('JARVIS command error:', err);
+
+        response = `System exception:
+            <strong>${escapeHTML(err.message)}</strong>
+            <br>Check your internet connection and AI configuration.`;
     }
 
     reactorCore.classList.remove('thinking');
     coreState.textContent = 'STANDBY';
+
     appendMessage('jarvis', response);
     speak(response);
 }
 
-// Form & Quick Buttons
-cmdForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    processCommand(cmdInput.value);
+// ============================================================
+// 17. FORM SUBMISSION
+// ============================================================
+
+cmdForm.addEventListener('submit', async (event) => {
+
+    event.preventDefault();
+
+    const message = cmdInput.value.trim();
+
+    if (!message) return;
+
     cmdInput.value = '';
+
+    await processCommand(message);
 });
+
+// ============================================================
+// 18. QUICK COMMAND BUTTONS
+// ============================================================
 
 document.querySelectorAll('.cmd-btn[data-cmd]').forEach(btn => {
+
     btn.addEventListener('click', () => {
-        processCommand(btn.getAttribute('data-cmd'));
+
+        processCommand(
+            btn.getAttribute('data-cmd')
+        );
+
     });
+
 });
 
-// Speech Recognition
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+// ============================================================
+// 19. SPEECH RECOGNITION
+// ============================================================
+
+const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
 if (SpeechRecognition) {
+
     const recognition = new SpeechRecognition();
+
     recognition.lang = 'en-US';
     recognition.interimResults = false;
 
     micBtn.addEventListener('click', () => {
-        try { recognition.start(); } catch (err) { recognition.stop(); }
+
+        try {
+            recognition.start();
+        } catch (error) {
+            console.warn('Speech recognition:', error);
+        }
+
     });
+
     recognition.onstart = () => {
+
         reactorCore.classList.add('listening');
         micBtn.classList.add('active');
+
         micLabel.textContent = 'LISTENING...';
         coreState.textContent = 'LISTENING';
+
     };
-    recognition.onresult = (event) => processCommand(event.results[0][0].transcript);
-    recognition.onerror = (event) => appendMessage('jarvis', `Audio sensor alert: ${event.error}.`);
+
+    recognition.onresult = (event) => {
+
+        processCommand(
+            event.results[0][0].transcript
+        );
+
+    };
+
+    recognition.onerror = (event) => {
+
+        appendMessage(
+            'jarvis',
+            `Audio sensor alert: ${escapeHTML(event.error)}.`
+        );
+
+    };
+
     recognition.onend = () => {
+
         reactorCore.classList.remove('listening');
         micBtn.classList.remove('active');
+
         micLabel.textContent = 'INITIALIZE VOICE';
-        if (coreState.textContent === 'LISTENING') coreState.textContent = 'STANDBY';
+
+        if (coreState.textContent === 'LISTENING') {
+            coreState.textContent = 'STANDBY';
+        }
+
     };
+
 } else {
+
     micBtn.style.opacity = '0.5';
     micLabel.textContent = 'VOICE UNSUPPORTED';
+
 }
+
+// ============================================================
+// 20. SYSTEM INITIALIZATION
+// ============================================================
+
+console.log('J.A.R.V.I.S. system initialized.');
+console.log('Agentic dataset catalogue loaded:', AGENTIC_DATASETS.length);
+console.log('Custom memory entries:', customMemory.length);
+console.log('AI provider:', savedProvider);
+console.log('External AI configured:', Boolean(savedApiKey));

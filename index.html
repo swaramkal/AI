@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J.A.R.V.I.S. // Tactical AI & Neural Training HUD</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="scanlines"></div>
+    <div class="grid-bg"></div>
+
+    <header class="hud-header">
+        <div class="status-group">
+            <span class="pulse-dot"></span>
+            <span class="sys-label" id="ai-mode-badge">SYS.ONLINE // AGENT-TRAINED CORE</span>
+        </div>
+        <h1 class="main-title">J.A.R.V.I.S.</h1>
+        <div class="telemetry">
+            <span id="clock">00:00:00</span>
+            <span class="divider">|</span>
+            <span id="battery-status">PWR: 100%</span>
+            <button id="train-modal-btn" class="hud-icon-btn amber-btn" title="Train J.A.R.V.I.S. Custom Knowledge & Datasets">🧠 TRAIN CORE</button>
+            <button id="settings-btn" class="hud-icon-btn" title="Configure AI Brain (Optional API Key)">⚙ API KEY</button>
+        </div>
+    </header>
+
+    <!-- Neural Training & Dataset Ingestion Modal -->
+    <div id="train-modal" class="modal hidden">
+        <div class="modal-box wide-modal">
+            <div class="panel-header">
+                <span>J.A.R.V.I.S. NEURAL TRAINING &amp; TOOL-USE ENGINE</span>
+                <button id="close-train-modal" class="close-btn">✕</button>
+            </div>
+            <p class="modal-desc">
+                Train J.A.R.V.I.S. directly in your browser using <strong>Supervised Fact Pairs</strong>, <strong>Agentic Datasets</strong> (BFCL, ToolBench, GAIA, SWE-bench, WebArena, ALFRED), or your own custom <strong>JSON / Q&amp;A Knowledge Base</strong>.
+            </p>
+
+            <div class="train-tabs">
+                <button class="tab-btn active" data-tab="tab-qa">1. Teach Custom Q&amp;A</button>
+                <button class="tab-btn" data-tab="tab-datasets">2. Agentic Datasets</button>
+                <button class="tab-btn" data-tab="tab-memory">3. Trained Memory (<span id="mem-count">0</span>)</button>
+            </div>
+
+            <!-- Tab 1: Teach Q&A -->
+            <div id="tab-qa" class="tab-content">
+                <label class="field-label">TRIGGER QUESTION / DIRECTIVE:</label>
+                <input type="text" id="train-q" class="hud-input" placeholder="e.g., Who is my creator? or What is Project Mark 85?">
+                <label class="field-label">TRAINED J.A.R.V.I.S. RESPONSE:</label>
+                <textarea id="train-a" class="hud-textarea" rows="3" placeholder="e.g., You are my creator, Sir. Project Mark 85 is our bleeding-edge nanotech armor suite."></textarea>
+                <div class="modal-actions">
+                    <button id="save-train-btn" class="cmd-btn primary">TRAIN &amp; COMMIT TO MEMORY</button>
+                </div>
+            </div>
+
+            <!-- Tab 2: Pre-loaded Agentic & Eval Datasets -->
+            <div id="tab-datasets" class="tab-content hidden">
+                <p class="modal-desc">Load verified knowledge &amp; tool-routing weights from your agentic training &amp; evaluation corpora:</p>
+                <div class="dataset-grid" id="dataset-list"></div>
+            </div>
+
+            <!-- Tab 3: View / Export / Clear Trained Memory -->
+            <div id="tab-memory" class="tab-content hidden">
+                <div id="trained-list" class="trained-list"></div>
+                <div class="modal-actions">
+                    <button id="export-memory-btn" class="cmd-btn">EXPORT WEIGHTS (.JSON)</button>
+                    <button id="wipe-memory-btn" class="cmd-btn danger">WIPE CUSTOM MEMORY</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optional API Key Modal -->
+    <div id="api-modal" class="modal hidden">
+        <div class="modal-box">
+            <div class="panel-header">
+                <span>EXTERNAL LLM NEURAL LINK</span>
+                <button id="close-modal" class="close-btn">✕</button>
+            </div>
+            <p class="modal-desc">
+                J.A.R.V.I.S. combines your <strong>Trained Local Memory</strong> + <strong>Live Knowledge Engines</strong> (Wikipedia, Weather, Dictionary, Math, Tool Routing) automatically with zero API key.
+            </p>
+            <p class="modal-desc">
+                Optionally add a <strong>Groq</strong> or <strong>OpenAI</strong> key so the LLM also uses your trained facts and tool definitions:
+            </p>
+            <select id="api-provider" class="hud-select">
+                <option value="groq">Groq API (Llama 3.3 70B - Free Tier)</option>
+                <option value="openai">OpenAI API (GPT-4o-mini)</option>
+            </select>
+            <input type="password" id="api-key-input" class="hud-input" placeholder="Paste API Key (gsk_... or sk-...)">
+            <div class="modal-actions">
+                <button id="save-api-btn" class="cmd-btn primary">ACTIVATE NEURAL LINK</button>
+                <button id="clear-api-btn" class="cmd-btn">USE BUILT-IN TRAINED CORE</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="hud-container">
+        <!-- Left Panel: System Diagnostics & Training Status -->
+        <aside class="panel left-panel">
+            <div class="panel-header">CORE DIAGNOSTICS</div>
+            <div class="metric">
+                <div class="metric-label"><span>NEURAL WEIGHTS</span><span id="weights-val">READY</span></div>
+                <div class="bar-track"><div class="bar-fill" id="weights-bar" style="width: 88%;"></div></div>
+            </div>
+            <div class="metric">
+                <div class="metric-label"><span>TOOL ROUTING (BFCL)</span><span id="tool-val">ACTIVE</span></div>
+                <div class="bar-track"><div class="bar-fill" id="tool-bar" style="width: 96%;"></div></div>
+            </div>
+            <div class="metric">
+                <div class="metric-label"><span>ARC REACTOR</span><span id="arc-val">99%</span></div>
+                <div class="bar-track"><div class="bar-fill" id="arc-bar" style="width: 99%;"></div></div>
+            </div>
+
+            <div class="panel-header mt-20">TRAINED DIRECTIVES</div>
+            <div class="quick-commands">
+                <button class="cmd-btn" data-cmd="Train: My name is Tony => Welcome back, Tony. All workshop protocols are unlocked.">Teach Name</button>
+                <button class="cmd-btn" data-cmd="What datasets are you trained on?">List Datasets</button>
+                <button class="cmd-btn" data-cmd="Explain SWE-bench">Eval: SWE-bench</button>
+                <button class="cmd-btn" data-cmd="Explain BFCL dataset">Eval: BFCL</button>
+                <button class="cmd-btn" data-cmd="Weather in Hyderabad">Tool: Weather</button>
+                <button class="cmd-btn" data-cmd="Calculate (256 * 8) + 1024">Tool: Math</button>
+            </div>
+        </aside>
+
+        <!-- Center Panel: Arc Reactor Visualizer -->
+        <section class="core-section">
+            <div class="reactor-wrapper" id="reactor-core">
+                <div class="ring ring-outer"></div>
+                <div class="ring ring-mid"></div>
+                <div class="ring ring-inner"></div>
+                <div class="core-center">
+                    <span id="core-state">STANDBY</span>
+                </div>
+            </div>
+            <button id="mic-btn" class="mic-trigger" title="Toggle Voice Recognition">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/>
+                </svg>
+                <span id="mic-label">INITIALIZE VOICE</span>
+            </button>
+            <p class="hint-text">
+                Teach J.A.R.V.I.S. anytime right in chat using:<br>
+                <code>Train: [question] => [answer]</code><br>
+                or click <strong>🧠 TRAIN CORE</strong> above.
+            </p>
+        </section>
+
+        <!-- Right Panel: Terminal & Chat Log -->
+        <aside class="panel right-panel">
+            <div class="panel-header">
+                <span>COMMS TERMINAL</span>
+                <label class="voice-toggle">
+                    <input type="checkbox" id="tts-toggle" checked>
+                    <span>VOICE OUT</span>
+                </label>
+            </div>
+            <div class="terminal-log" id="terminal-log">
+                <div class="msg jarvis">
+                    <span class="tag">[J.A.R.V.I.S.]</span> Neural core initialized with <strong>15 Agentic Training &amp; Evaluation Datasets</strong> (ToolBench, BFCL, GAIA, SWE-bench, WebArena, ALFRED, and more). You can also teach me new facts live using <code>Train: question =&gt; answer</code>.
+                </div>
+            </div>
+            <form id="cmd-form" class="terminal-input-wrap">
+                <span class="prompt">&gt;</span>
+                <input type="text" id="cmd-input" placeholder="Ask anything or type Train: Q => A ..." autocomplete="off">
+                <button type="submit">EXEC</button>
+            </form>
+        </aside>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

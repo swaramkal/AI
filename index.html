@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="J.A.R.V.I.S. Personal Offline Intelligence System">
+  <title>J.A.R.V.I.S. — Personal Offline Intelligence</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="reactor">J</div><div><b>J.A.R.V.I.S.</b><small>PERSONAL INTELLIGENCE</small></div></div>
+    <button class="new-chat" id="newChat">＋ New conversation</button>
+    <nav>
+      <button class="nav-btn active" data-panel="chat">◈ <span>Chat</span></button>
+      <button class="nav-btn" data-panel="datasets">▤ <span>Dataset engine</span></button>
+      <button class="nav-btn" data-panel="memory">▣ <span>Memory engine</span></button>
+      <button class="nav-btn" data-panel="learning">✧ <span>Learning approval</span><em id="pendingCount">0</em></button>
+      <button class="nav-btn" data-panel="settings">⚙ <span>Settings</span></button>
+    </nav>
+    <div class="side-status"><span class="pulse"></span> LOCAL MODE <small>No API key configured</small></div>
+    <div class="sidebar-foot">Your data stays in this browser unless you export it.</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="mobile-menu" id="menuBtn" aria-label="Menu">☰</button>
+      <div><strong id="panelTitle">Chat</strong><small id="modeLabel">Offline knowledge assistant</small></div>
+      <div class="top-actions"><span class="status-pill"><i></i> Offline-ready</span><button class="icon-btn" id="exportAll" title="Export backup">⇩</button></div>
+    </header>
+
+    <section class="panel active" id="panel-chat">
+      <div class="chat-wrap">
+        <div class="welcome" id="welcome">
+          <div class="welcome-orb">J</div>
+          <p class="eyebrow">PERSONAL OFFLINE INTELLIGENCE SYSTEM</p>
+          <h1>How can I help<br><span>you today?</span></h1>
+          <p class="muted">Ask a question, search your knowledge, or teach me something new.</p>
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="What can you do?">What can you do?</button>
+            <button class="suggestion" data-prompt="Explain computer networking">Explain computer networking</button>
+            <button class="suggestion" data-prompt="What do you remember?">What do you remember?</button>
+          </div>
+        </div>
+        <div class="messages" id="messages" aria-live="polite"></div>
+        <div class="composer-area">
+          <div class="composer">
+            <textarea id="messageInput" rows="1" placeholder="Message J.A.R.V.I.S. … (Enter to send)"></textarea>
+            <button id="voiceBtn" class="tool-btn" title="Voice input">🎙</button>
+            <button id="sendBtn" class="send-btn" aria-label="Send">➤</button>
+          </div>
+          <div class="composer-note">Local retrieval and memory · Verify important information · No external AI API</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-datasets">
+      <div class="page-content">
+        <div class="page-heading"><p class="eyebrow">KNOWLEDGE INGESTION</p><h1>Dataset engine</h1><p class="muted">Import documents and make their contents searchable by J.A.R.V.I.S.</p></div>
+        <div class="upload-card">
+          <div class="upload-icon">⇧</div><h2>Import knowledge files</h2>
+          <p class="muted">Supported: PDF, CSV, JSON, TXT, MD and HTML. Files are processed locally in your browser.</p>
+          <label class="primary-btn file-label">Choose files<input type="file" id="fileInput" multiple accept=".pdf,.csv,.json,.txt,.md,.html,.htm"></label>
+          <p id="importStatus" class="small muted">PDF extraction loads PDF.js from a public CDN the first time. Other formats use built-in browser code.</p>
+        </div>
+        <div class="section-head"><h2>Indexed sources</h2><span id="sourceCount" class="count">0 sources</span></div>
+        <div id="sourceList" class="source-list"><div class="empty-state">No datasets imported yet.</div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-memory">
+      <div class="page-content">
+        <div class="page-heading"><p class="eyebrow">PERSONAL KNOWLEDGE</p><h1>Memory engine</h1><p class="muted">Teach facts and question-answer pairs. Memories remain on this device.</p></div>
+        <form id="memoryForm" class="form-card">
+          <h2>Teach J.A.R.V.I.S.</h2>
+          <label>Question or fact<input id="memoryQuestion" required maxlength="500" placeholder="e.g. What is my preferred language?"></label>
+          <label>Answer or information<textarea id="memoryAnswer" required rows="3" maxlength="5000" placeholder="Enter the answer J.A.R.V.I.S. should remember"></textarea></label>
+          <button class="primary-btn" type="submit">＋ Save memory</button>
+        </form>
+        <div class="section-head"><h2>Saved memories</h2><span id="memoryCount" class="count">0 memories</span></div>
+        <div id="memoryList" class="memory-list"><div class="empty-state">No memories saved yet.</div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-learning">
+      <div class="page-content">
+        <div class="page-heading"><p class="eyebrow">SUPERVISED LEARNING</p><h1>Learning approval</h1><p class="muted">J.A.R.V.I.S. can suggest memories from explicit “remember that…” messages. You decide what is saved.</p></div>
+        <div class="notice">For privacy and accuracy, ordinary conversations are not silently stored as facts. Review every suggestion before approving it.</div>
+        <div id="pendingList" class="memory-list"><div class="empty-state">No pending learning suggestions.</div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-settings">
+      <div class="page-content">
+        <div class="page-heading"><p class="eyebrow">SYSTEM CONTROL</p><h1>Settings & backup</h1><p class="muted">Manage language, local data and your knowledge backups.</p></div>
+        <div class="form-card settings-card">
+          <label>Preferred response language<select id="language"><option value="auto">Auto detect / match question</option><option value="en">English</option><option value="te">Telugu</option></select></label>
+          <label class="check-row"><input type="checkbox" id="voiceOutput"> Read answers aloud when supported</label>
+          <div class="button-row"><button class="primary-btn" id="backupBtn">Export full backup (JSON)</button><label class="secondary-btn file-label">Restore backup<input type="file" id="restoreInput" accept=".json"></label></div>
+          <button class="danger-btn" id="clearBtn">Delete all local data</button>
+        </div>
+        <div class="notice"><b>Privacy:</b> Data is stored in IndexedDB on this browser/device. Clearing browser site data can erase it. Export backups regularly. GitHub Pages hosts the app files; it does not sync your private memories.</div>
+        <div class="about-card"><h2>About this build</h2><p>J.A.R.V.I.S. is a local retrieval-based assistant. It can search uploaded knowledge and saved memories, perform selected built-in tasks and learn approved facts. It is not a general-purpose neural language model and cannot guarantee answers to arbitrary questions without a model or external service.</p></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toast" class="toast" role="status"></div>
+<script src="app.js"></script>
+</body>
+</html>

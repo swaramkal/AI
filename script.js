@@ -160,6 +160,7 @@ updateWeightsIndicator();
 // 4. TRAINED MEMORY MATCHING
 // ============================================================
 
+
 function findTrainedMatch(query) {
     const cleanQ = query
         .toLowerCase()
@@ -181,9 +182,7 @@ function findTrainedMatch(query) {
             cleanQ.includes(trainedQ) ||
             trainedQ.includes(cleanQ)
         ) {
-            return `${escapeHTML(item.a)}
-                <span style="color:var(--amber);font-size:0.75rem;">
-                [Trained Memory]</span>`;
+            return escapeHTML(item.a);
         }
     }
 
@@ -216,9 +215,7 @@ function findTrainedMatch(query) {
         }
 
         if (bestItem) {
-            return `${escapeHTML(bestItem.a)}
-                <span style="color:var(--amber);font-size:0.75rem;">
-                [Trained Memory]</span>`;
+            return escapeHTML(bestItem.a);
         }
     }
 
@@ -249,6 +246,7 @@ function findTrainedMatch(query) {
 
     return null;
 }
+
 
 // ============================================================
 // 5. HTML ESCAPING
